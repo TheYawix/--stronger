@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>@w1cwmdev</title>
+  <meta name="description" content="Telegram-боты под ключ: Mini Apps, магазины, парсеры, юзерботы, VPN-боты, Telegram Stars. Собери ТЗ за минуту.">
+
+  <!-- Open Graph — превью ссылки в мессенджерах -->
+  <meta property="og:title" content="w1cwmdev — разработка Telegram-ботов">
+  <meta property="og:description" content="Боты, которые работают 24/7. Деплой включён. Собери ТЗ за минуту.">
+  <meta property="og:type" content="website">
+
+  <!-- Favicon: снежинка (emoji в SVG data-URI) -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9D%84%3C/text%3E%3C/svg%3E">
+
+  <!-- Шрифты с поддержкой кириллицы: Unbounded (заголовки) + Manrope (текст) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS (Play CDN — без сборки; для продакшена см. README) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    /* Кастомная тема «Полярная ночь»: тёмно-синий фон + ледяные акценты */
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            night: { 950: '#060C18', 900: '#0B1626', 800: '#13233C', 700: '#1D3252' },
+            ice:   { 300: '#BAE6FD', 400: '#7DD3FC', 500: '#38BDF8', 600: '#0EA5E9' },
+            frost: '#E8F1F8',
+            aurora:{ 400: '#818CF8', 500: '#6366F1' },
+          },
+          fontFamily: {
+            display: ['Unbounded', 'sans-serif'],
+            body: ['Manrope', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Стили Liquid Glass: материалы, анимации, компоненты -->
+  <link rel="stylesheet" href="css/style.css?v=25">
+</head>
+
+<body class="bg-night-950 text-frost font-body antialiased overflow-x-hidden">
+
+  <!-- Ссылка для быстрого перехода к контенту (доступность) -->
+  <a href="#main"
+     class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-ice-500 focus:text-night-950 focus:px-4 focus:py-2 focus:rounded-lg focus:font-bold">
+    Перейти к содержимому
+  </a>
+
+  <!-- ==================== ФОНОВЫЕ СЛОИ ==================== -->
+  <div id="stars" aria-hidden="true" class="stars-layer"></div>
+
+  <!-- Прогресс чтения страницы (двигается js/main.js -> initScrollFX) -->
+  <div class="progress-bar" aria-hidden="true"></div>
+
+  <!-- Полярное сияние: медленно дрейфующие градиентные пятна.
+       Контейнер закреплён (fixed), дети — своя keyframe-анимация -->
+  <div aria-hidden="true" id="aurora-field" class="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+    <div class="aurora-blob aurora-a absolute -top-40 -left-32 h-[34rem] w-[34rem] rounded-full bg-ice-500/20 blur-[120px]"></div>
+    <div class="aurora-blob aurora-b absolute top-1/3 -right-40 h-[38rem] w-[38rem] rounded-full bg-aurora-500/15 blur-[130px]"></div>
+    <div class="aurora-blob aurora-c absolute bottom-0 left-1/4 h-[26rem] w-[26rem] rounded-full bg-emerald-500/10 blur-[110px]"></div>
+  </div>
+
+  <!-- Канвас со снегом (js/snow.js) -->
+  <canvas id="snow" aria-hidden="true" class="snow-canvas"></canvas>
+
+  <!-- ==================== ШАПКА: плавающая glass-капсула ==================== -->
+  <header id="site-header" class="fixed top-0 inset-x-0 z-50 pt-3 sm:pt-4">
+    <div class="mx-auto max-w-6xl px-4 sm:px-6">
+      <div class="glass-pill flex h-14 items-center justify-between gap-3 rounded-2xl px-3 sm:px-4">
+
+        <!-- Логотип -->
+        <a href="#hero" class="nav-link flex items-center gap-2 font-mono text-base tracking-wide text-ice-300">
+          <span class="grid place-items-center h-9 w-9 rounded-xl bg-ice-500/15 border border-ice-400/30 text-ice-400">
+            <svg class="logo-flake h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 2v20M4 6l16 12M20 6L4 18M12 6l-2-2M12 6l2-2M12 18l-2 2M12 18l2 2"/>
+            </svg>
+          </span>
+          @w1cwmdev
+        </a>
+
+        <!-- Навигация (десктоп) -->
+        <nav class="relative hidden md:flex items-center gap-1 text-sm text-slate-300" aria-label="Основная навигация">
+          <a class="nav-link nav-spy px-3 py-2 rounded-lg" href="#services">Услуги</a>
+          <a class="nav-link nav-spy px-3 py-2 rounded-lg" href="#works">Демо</a>
+          <a class="nav-link nav-spy px-3 py-2 rounded-lg" href="#why">Почему я</a>
+          <a class="nav-link nav-spy px-3 py-2 rounded-lg" href="#terms">Условия</a>
+          <a class="nav-link nav-spy px-3 py-2 rounded-lg" href="#order">Заявка</a>
+          <a class="nav-link nav-spy px-3 py-2 rounded-lg" href="#faq">Вопросы</a>
+          <a class="nav-link nav-spy px-3 py-2 rounded-lg" href="#contacts">Контакты</a>
+        </nav>
+
+        <!-- Действия справа: снег, Telegram, бургер -->
+        <div class="flex items-center gap-2">
+          <!-- Кнопка вкл/выкл снега -->
+          <button id="snow-toggle" type="button" class="btn btn-icon sheen"
+                  aria-label="Включить или выключить снег" title="Снег вкл/выкл">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+              <path d="M12 2v20M4 6l16 12M20 6L4 18M12 6l-2-2M12 6l2-2M12 18l-2 2M12 18l2 2"/>
+            </svg>
+          </button>
+
+          <!-- Главный CTA: Telegram (href из js/config.js) -->
+          <a data-telegram-link
+             class="btn btn-primary sheen hidden sm:inline-flex px-4 py-2.5 text-sm"
+             target="_blank" rel="noopener">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/>
+            </svg>
+            Написать
+          </a>
+
+          <!-- Бургер (мобильные) -->
+          <button id="burger" type="button" class="btn btn-icon md:hidden"
+                  aria-label="Открыть меню" aria-expanded="false" aria-controls="mobile-menu">
+            <span class="burger-box" aria-hidden="true"><span class="burger-line"></span><span class="burger-line"></span><span class="burger-line"></span></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Мобильное меню (стеклянная панель) -->
+      <nav id="mobile-menu"
+           class="mobile-menu glass-panel md:hidden rounded-2xl"
+           aria-label="Мобильная навигация">
+        <div class="flex flex-col p-3 text-base">
+          <a class="nav-link px-4 py-3 rounded-xl hover:bg-white/5" href="#services">Услуги</a>
+          <a class="nav-link px-4 py-3 rounded-xl hover:bg-white/5" href="#works">Демо</a>
+          <a class="nav-link px-4 py-3 rounded-xl hover:bg-white/5" href="#stack">Стек</a>
+          <a class="nav-link px-4 py-3 rounded-xl hover:bg-white/5" href="#why">Почему я</a>
+          <a class="nav-link px-4 py-3 rounded-xl hover:bg-white/5" href="#process">Как работаю</a>
+          <a class="nav-link px-4 py-3 rounded-xl hover:bg-white/5" href="#terms">Условия</a>
+          <a class="nav-link px-4 py-3 rounded-xl hover:bg-white/5" href="#order">Заявка</a>
+          <a class="nav-link px-4 py-3 rounded-xl hover:bg-white/5" href="#faq">Вопросы</a>
+          <a class="nav-link px-4 py-3 rounded-xl hover:bg-white/5" href="#contacts">Контакты</a>
+          <a data-telegram-link class="btn btn-primary mt-2 w-full px-4 py-3 text-base" target="_blank" rel="noopener">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/>
+            </svg>
+            Написать в Telegram
+          </a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <!-- ==================== HERO ==================== -->
+    <section id="hero" class="relative flex min-h-screen items-center pt-28 pb-16">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6 w-full">
+        <!-- data-hero-fade: герой растворяется при прокрутке (initScrollFX) -->
+        <div class="grid gap-10 lg:grid-cols-2 lg:gap-14 items-center" data-hero-fade>
+
+          <!-- Левая колонка: статус, оффер, CTA, цифры -->
+          <div>
+            <p class="status-pill inline-flex items-center gap-2 rounded-full glass-panel px-4 py-1.5 text-sm font-semibold text-emerald-300" style="--hd:.05s">
+              <span class="relative flex h-2.5 w-2.5" aria-hidden="true">
+                <span class="status-ring absolute inline-flex h-full w-full rounded-full bg-emerald-400"></span>
+                <span class="status-ring status-ring-delay absolute inline-flex h-full w-full rounded-full bg-emerald-400"></span>
+                <span class="status-dot relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
+              </span>
+              бот онлайн 24/7
+            </p>
+
+            <h1 class="hero-anim mt-6 font-display text-3xl sm:text-5xl font-700 leading-[1.1] break-words" style="--hd:.15s">
+              w1cwmdev
+            </h1>
+
+            <p class="hero-anim mt-6 max-w-xl text-lg text-slate-300 leading-relaxed" style="--hd:.25s">
+              Делаю Telegram-ботов на Python, которые работают 24/7
+              и не падают при наплыве пользователей.
+            </p>
+
+            <!-- Призыв к действию -->
+            <div class="hero-anim mt-9 flex flex-wrap items-center gap-4" style="--hd:.35s">
+              <a href="#order" class="btn btn-primary sheen breathe px-7 py-4 text-base">
+                Заказать бота
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 12h15M13 6l6 6-6 6"/>
+                </svg>
+              </a>
+              <a href="#works" class="btn btn-ghost sheen px-7 py-4 text-base">
+                Смотреть демо
+              </a>
+            </div>
+
+            <!-- Ключевые цифры -->
+            <dl class="hero-anim mt-14 grid grid-cols-3 gap-6 sm:gap-10 max-w-lg" style="--hd:.45s">
+              <div>
+                <dt class="sr-only">Опыт</dt>
+                <dd class="font-display text-2xl sm:text-3xl font-600 text-ice-400">1 год</dd>
+                <p class="mt-1 text-sm text-slate-400">в программировании</p>
+              </div>
+              <div>
+                <dt class="sr-only">Демо</dt>
+                <dd class="font-display text-2xl sm:text-3xl font-600 text-ice-400">3</dd>
+                <p class="mt-1 text-sm text-slate-400">демо-бота на Railway</p>
+              </div>
+              <div>
+                <dt class="sr-only">Направления</dt>
+                <dd class="font-display text-2xl sm:text-3xl font-600 text-ice-400">10</dd>
+                <p class="mt-1 text-sm text-slate-400">направлений работ</p>
+              </div>
+            </dl>
+          </div>
+
+          <!-- Правая колонка: код + пример диалога -->
+          <div class="hero-anim space-y-4" style="--hd:.4s">
+            <div class="glass-card p-5 font-mono text-[13px] leading-relaxed text-slate-300">
+              <p><span class="text-aurora-400">from</span> <span class="text-ice-300">aiogram</span> <span class="text-aurora-400">import</span> Router, F</p>
+              <p>router = Router()</p>
+              <p>&nbsp;</p>
+              <p><span class="text-aurora-400">@</span>router.message(F.text == <span class="text-emerald-300">"/start"</span>)</p>
+              <p><span class="text-aurora-400">async def</span> start(m):</p>
+              <p>&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-aurora-400">await</span> m.answer(<span class="text-emerald-300">"На связи 👋"</span>)</p>
+            </div>
+
+            <div class="glass-card p-5">
+              <p class="text-xs uppercase tracking-widest text-slate-500">пример диалога с ботом-напоминалкой</p>
+              <div class="mt-4 space-y-2.5 text-sm">
+                <div class="max-w-[85%] rounded-2xl rounded-tl-md bg-white/5 border border-white/10 px-4 py-2.5">Привет! Я напоминалка. Что запомнить?</div>
+                <div class="ml-auto max-w-[85%] w-fit rounded-2xl rounded-tr-md bg-ice-500/15 border border-ice-400/25 px-4 py-2.5">Позвонить маме завтра в 12:00</div>
+                <div class="max-w-[85%] rounded-2xl rounded-tl-md bg-white/5 border border-white/10 px-4 py-2.5">Записал. Напомню завтра в 12:00 🔔</div>
+                <div class="max-w-[85%] rounded-2xl rounded-tl-md bg-white/5 border border-white/10 px-4 py-2.5">🔔 Позвонить маме!</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Индикатор скролла: мягкое парение -->
+      <a href="#services" class="scroll-hint nav-link absolute bottom-6 left-1/2 -translate-x-1/2 text-slate-500 hover:text-ice-300" aria-label="Прокрутить вниз">
+        <svg class="scroll-float h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </a>
+    </section>
+
+    <!-- ==================== БЕГУЩАЯ СТРОКА ==================== -->
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker-line">
+        <span>Mini Apps&nbsp;//&nbsp;Магазины&nbsp;//&nbsp;Приватки&nbsp;//&nbsp;Парсеры&nbsp;//&nbsp;Юзерботы&nbsp;//&nbsp;VPN-боты&nbsp;//&nbsp;Telegram&nbsp;Stars&nbsp;//&nbsp;Боты&nbsp;знакомств&nbsp;//&nbsp;Сайты&nbsp;//&nbsp;и&nbsp;многое&nbsp;другое&nbsp;//&nbsp;</span>
+        <span>Mini Apps&nbsp;//&nbsp;Магазины&nbsp;//&nbsp;Приватки&nbsp;//&nbsp;Парсеры&nbsp;//&nbsp;Юзерботы&nbsp;//&nbsp;VPN-боты&nbsp;//&nbsp;Telegram&nbsp;Stars&nbsp;//&nbsp;Боты&nbsp;знакомств&nbsp;//&nbsp;Сайты&nbsp;//&nbsp;и&nbsp;многое&nbsp;другое&nbsp;//&nbsp;</span>
+      </div>
+    </div>
+
+    <!-- ==================== УСЛУГИ ==================== -->
+    <section id="services" class="section-pad">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div data-reveal="0">
+          <p class="section-kicker">Услуги</p>
+          <h2 class="section-title">Что я делаю</h2>
+          <p class="mt-4 max-w-2xl text-slate-400">
+            Любой бот пишу на чистом Python (Aiogram, Pyrogram) и сразу ставлю на сервер.
+          </p>
+        </div>
+
+        <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
+          <article class="glass-card service-card" data-reveal="0">
+            <div class="service-icon">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V5"/><circle cx="12" cy="3.7" r="1.2"/>
+                <circle cx="9" cy="13.5" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="13.5" r="1" fill="currentColor" stroke="none"/><path d="M9.5 17h5"/>
+              </svg>
+            </div>
+            <h3 class="mt-5 font-display text-lg font-600">Mini Apps</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Быстрые приложения внутри Telegram, без лагов.</p>
+          </article>
+
+          <article class="glass-card service-card" data-reveal="60">
+            <div class="service-icon">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 4h18l-1.5 9.5a2 2 0 0 1-2 1.5H8"/><circle cx="9" cy="20" r="1.6"/><circle cx="17" cy="20" r="1.6"/><path d="M3 4h2l2 11"/>
+              </svg>
+            </div>
+            <h3 class="mt-5 font-display text-lg font-600">Магазины и приватки</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Приём оплаты и автоматическая выдача товара или доступа.</p>
+          </article>
+
+          <article class="glass-card service-card" data-reveal="120">
+            <div class="service-icon">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/><path d="M8 11h6M11 8v6"/>
+              </svg>
+            </div>
+            <h3 class="mt-5 font-display text-lg font-600">Парсеры</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Собираю данные с нужных сайтов и сервисов.</p>
+          </article>
+
+          <article class="glass-card service-card" data-reveal="0">
+            <div class="service-icon">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.5a3 3 0 0 1 0 5M17.5 14a5.5 5.5 0 0 1 3 4.5"/>
+              </svg>
+            </div>
+            <h3 class="mt-5 font-display text-lg font-600">Юзерботы и автоматизация</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Автоматизирую рутину под ваши задачи.</p>
+          </article>
+
+          <article class="glass-card service-card" data-reveal="60">
+            <div class="service-icon">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3c3.5 4 5 6.5 5 9a5 5 0 0 1-10 0c0-2.5 1.5-5 5-9z"/><path d="M12 17v4M8 21h8"/>
+              </svg>
+            </div>
+            <h3 class="mt-5 font-display text-lg font-600">VPN-боты</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Продажа и выдача ключей в автоматическом режиме.</p>
+          </article>
+
+          <article class="glass-card service-card" data-reveal="120">
+            <div class="service-icon">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6L7.1 18.2l.9-5.5-4-3.9L9.5 8z"/>
+              </svg>
+            </div>
+            <h3 class="mt-5 font-display text-lg font-600">Боты для покупки звёзд</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Покупка Telegram Stars прямо в чате.</p>
+          </article>
+
+          <article class="glass-card service-card" data-reveal="0">
+            <div class="service-icon">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"/><path d="M8.5 9.5c.5-1 1.5-1.5 2.5-1 1 .4 1.5 1.5 1 2.5-.4 1-1.5 1.5-2.5 1M15.5 14.5c-.5 1-1.5 1.5-2.5 1-1-.4-1.5-1.5-1-2.5"/>
+              </svg>
+            </div>
+            <h3 class="mt-5 font-display text-lg font-600">Казино-боты</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Игровые боты с балансом и историей игр.</p>
+          </article>
+
+          <article class="glass-card service-card" data-reveal="60">
+            <div class="service-icon">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 20.5S4 15 4 9.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 2.5C20 15 12 20.5 12 20.5z"/>
+              </svg>
+            </div>
+            <h3 class="mt-5 font-display text-lg font-600">Боты знакомств</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Анкеты, поиск и оценки, как в Дайвинчике.</p>
+          </article>
+
+          <article class="glass-card service-card" data-reveal="120">
+            <div class="service-icon">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10z"/><path d="M13 3v7h7"/><path d="M9 14h6M9 17h4"/>
+              </svg>
+            </div>
+            <h3 class="mt-5 font-display text-lg font-600">Боты для хранения файлов</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">APK-боты и любые боты, которые хранят и раздают файлы для канала.</p>
+          </article>
+
+          <article class="glass-card service-card" data-reveal="0">
+            <div class="service-icon">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/>
+              </svg>
+            </div>
+            <h3 class="mt-5 font-display text-lg font-600">Сайты</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Сайты под ключ: дизайн, вёрстка и запуск. Сроки дольше, чем у ботов.</p>
+          </article>
+
+          <article class="glass-card service-card sm:col-span-2 lg:col-span-1" data-reveal="60">
+            <div class="service-icon">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 12h15M13 6l6 6-6 6"/>
+              </svg>
+            </div>
+            <h3 class="mt-5 font-display text-lg font-600">А также многое другое</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Не нашли свою задачу в списке? Напишите, что нужно, и я придумаю решение.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== СТЕК ==================== -->
+    <section id="stack" class="section-pad">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div data-reveal="0">
+          <p class="section-kicker">Стек</p>
+          <h2 class="section-title">Мой стек</h2>
+        </div>
+
+        <div class="mt-12 grid gap-6 sm:grid-cols-3">
+          <div class="glass-card p-7" data-reveal="0">
+            <p class="font-mono text-sm text-ice-300">python</p>
+            <h3 class="mt-3 font-display text-lg font-600">Python</h3>
+            <p class="mt-2 text-sm text-slate-400">Aiogram, Pyrogram</p>
+          </div>
+          <div class="glass-card p-7" data-reveal="60">
+            <p class="font-mono text-sm text-ice-300">telegram</p>
+            <h3 class="mt-3 font-display text-lg font-600">Telegram</h3>
+            <p class="mt-2 text-sm text-slate-400">Боты, Mini Apps, юзерботы</p>
+          </div>
+          <div class="glass-card p-7" data-reveal="120">
+            <p class="font-mono text-sm text-ice-300">web</p>
+            <h3 class="mt-3 font-display text-lg font-600">Сайты</h3>
+            <p class="mt-2 text-sm text-slate-400">Сайты под ключ</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== РАБОТЫ ==================== -->
+    <section id="works" class="section-pad">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div data-reveal="0">
+          <p class="section-kicker">Демо</p>
+          <h2 class="section-title">Демо-боты</h2>
+          <p class="mt-4 max-w-2xl text-slate-400">Каждый демо-бот полностью работает на Railway — можно потыкать перед заказом.</p>
+        </div>
+
+        <div class="mt-12 grid gap-6 sm:grid-cols-2">
+
+          <article class="glass-card work-card" data-reveal="0">
+            <div class="work-thumb from-sky-500/40 to-indigo-600/40">
+              <svg class="work-icon h-12 w-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21a2 2 0 0 0 4 0"/>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex flex-wrap gap-2">
+                <span class="work-tag">SQLite</span>
+              </div>
+              <h3 class="mt-3 font-display text-lg font-600">Напоминалка</h3>
+              <p class="mt-2 text-sm text-slate-400">Ставишь напоминание — бот сам придёт с уведомлением в срок. Всё в базе: переживает перезапуски и не теряет записи.</p>
+              <a href="https://t.me/streminder_bot" target="_blank" rel="noopener" class="link-ice mt-4 inline-block font-mono text-sm">@streminder_bot</a>
+            </div>
+          </article>
+
+          <article class="glass-card work-card" data-reveal="80">
+            <div class="work-thumb from-cyan-400/40 to-blue-600/40">
+              <svg class="work-icon h-12 w-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 7h13M14 3.5 17.5 7 14 10.5"/><path d="M20 17H7M10 20.5 6.5 17 10 13.5"/><circle cx="19" cy="7" r="1.6"/><circle cx="5" cy="17" r="1.6"/>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex flex-wrap gap-2">
+                <span class="work-tag">API ЦБ</span>
+              </div>
+              <h3 class="mt-3 font-display text-lg font-600">Конвертер валют</h3>
+              <p class="mt-2 text-sm text-slate-400">Свежие курсы ЦБ прямо в чате: переводит суммы между валютами в пару кнопок, без ручных пересчётов.</p>
+              <a href="https://t.me/stcurrency_bot" target="_blank" rel="noopener" class="link-ice mt-4 inline-block font-mono text-sm">@stcurrency_bot</a>
+            </div>
+          </article>
+
+          <article class="glass-card work-card sm:col-span-2" data-reveal="160">
+            <div class="work-thumb from-indigo-500/40 to-violet-600/40">
+              <svg class="work-icon h-12 w-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 8.5c.6-1 1.7-1.5 3-1 1.2.4 1.8 1.6 1.3 2.8-.4 1-1.7 1.4-3 1.2"/><circle cx="12" cy="12" r="9"/><path d="M12 15.5h.01"/>
+              </svg>
+            </div>
+            <div class="p-6">
+              <div class="flex flex-wrap gap-2">
+                <span class="work-tag">Таблица лидеров</span>
+              </div>
+              <h3 class="mt-3 font-display text-lg font-600">Квиз-бот</h3>
+              <p class="mt-2 text-sm text-slate-400">Викторина с раундами, счётом и таблицей лидеров — хорош для каналов и чатов, оживляет аудиторию.</p>
+              <a href="https://t.me/stroxquiz_bot" target="_blank" rel="noopener" class="link-ice mt-4 inline-block font-mono text-sm">@stroxquiz_bot</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ПОЧЕМУ Я ==================== -->
+    <section id="why" class="section-pad">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div data-reveal="0">
+          <p class="section-kicker">Аргументы</p>
+          <h2 class="section-title">Почему я</h2>
+        </div>
+
+        <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="glass-card p-7" data-reveal="0">
+            <p class="font-display text-2xl font-600 text-ice-300">Python</p>
+            <p class="mt-2 text-sm text-slate-400">Чистый код на Aiogram и Pyrogram</p>
+          </div>
+          <div class="glass-card p-7" data-reveal="60">
+            <p class="font-display text-2xl font-600 text-ice-300">3–5 дней</p>
+            <p class="mt-2 text-sm text-slate-400">Средний срок написания</p>
+          </div>
+          <div class="glass-card p-7" data-reveal="120">
+            <p class="font-display text-2xl font-600 text-ice-300">Деплой</p>
+            <p class="mt-2 text-sm text-slate-400">Запуск на сервере включён</p>
+          </div>
+          <div class="glass-card p-7" data-reveal="0">
+            <p class="font-display text-2xl font-600 text-ice-300">Админка</p>
+            <p class="mt-2 text-sm text-slate-400">Удобное управление ботом</p>
+          </div>
+          <div class="glass-card p-7" data-reveal="60">
+            <p class="font-display text-2xl font-600 text-ice-300">от 1000 ₽</p>
+            <p class="mt-2 text-sm text-slate-400">Точная цена зависит от задачи</p>
+          </div>
+          <div class="glass-card p-7" data-reveal="120">
+            <p class="font-display text-2xl font-600 text-ice-300">35–50%</p>
+            <p class="mt-2 text-sm text-slate-400">Предоплата, зависит от суммы проекта</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== КАК РАБОТАЕМ ==================== -->
+    <section id="process" class="section-pad">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div data-reveal="0">
+          <p class="section-kicker">Процесс</p>
+          <h2 class="section-title">Как мы работаем</h2>
+        </div>
+
+        <ol class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <li class="glass-card process-step" data-reveal="0">
+            <span class="process-num">01</span>
+            <h3 class="mt-4 font-display text-base font-600">Пишете ТЗ</h3>
+            <p class="mt-2 text-sm text-slate-400">Опишите, что должен делать бот, в Telegram.</p>
+          </li>
+          <li class="glass-card process-step" data-reveal="80">
+            <span class="process-num">02</span>
+            <h3 class="mt-4 font-display text-base font-600">Согласуем цену и срок</h3>
+            <p class="mt-2 text-sm text-slate-400">Называю стоимость и дату сдачи. Предоплата 35–50%, зависит от суммы.</p>
+          </li>
+          <li class="glass-card process-step" data-reveal="160">
+            <span class="process-num">03</span>
+            <h3 class="mt-4 font-display text-base font-600">Разрабатываю</h3>
+            <p class="mt-2 text-sm text-slate-400">Показываю промежуточный результат.</p>
+          </li>
+          <li class="glass-card process-step" data-reveal="240">
+            <span class="process-num">04</span>
+            <h3 class="mt-4 font-display text-base font-600">Запускаю на сервере</h3>
+            <p class="mt-2 text-sm text-slate-400">Бот работает, админка настроена.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ==================== УСЛОВИЯ РАБОТЫ ==================== -->
+    <section id="terms" class="section-pad">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div data-reveal="0">
+          <p class="section-kicker">Условия</p>
+          <h2 class="section-title">Условия работы</h2>
+          <p class="mt-4 max-w-2xl text-slate-400">
+            Коротко о главном. Полная политика конфиденциальности и условия работы
+            опубликованы в Telegraph, обращаясь ко мне, вы с ними соглашаетесь.
+          </p>
+        </div>
+        <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="glass-card p-7" data-reveal="0">
+            <p class="font-mono text-sm text-ice-300">prepay()</p>
+            <h3 class="mt-3 font-display text-base font-600">Предоплата</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Работаю по предоплате 35–50% от стоимости проекта. Точный процент зависит от сложности, сроков и объёма работ.</p>
+          </div>
+          <div class="glass-card p-7" data-reveal="60">
+            <p class="font-mono text-sm text-ice-300">balance()</p>
+            <h3 class="mt-3 font-display text-base font-600">Остаток после показа</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Сначала показываю готовый работающий проект. Если всё соответствует ТЗ, вы оплачиваете остаток и получаете проект.</p>
+          </div>
+          <div class="glass-card p-7" data-reveal="120">
+            <p class="font-mono text-sm text-ice-300">warranty(days=3)</p>
+            <h3 class="mt-3 font-display text-base font-600">Гарантия 3 дня</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Бесплатно исправляю баги на моей стороне в течение 3 дней после передачи. Выходные не считаются.</p>
+          </div>
+          <div class="glass-card p-7" data-reveal="0">
+            <p class="font-mono text-sm text-ice-300">edits(price=200)</p>
+            <h3 class="mt-3 font-display text-base font-600">Правки после гарантии</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Одна правка стоит 200 ₽. Если нужна серьёзная переработка, цену обсуждаем отдельно.</p>
+          </div>
+          <div class="glass-card p-7" data-reveal="60">
+            <p class="font-mono text-sm text-ice-300">spec_only()</p>
+            <h3 class="mt-3 font-display text-base font-600">Работа по ТЗ</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Делаю строго по техзаданию. Новые функции и изменение требований оплачиваются отдельно.</p>
+          </div>
+          <div class="glass-card p-7" data-reveal="120">
+            <p class="font-mono text-sm text-ice-300">refund()</p>
+            <h3 class="mt-3 font-display text-base font-600">Возврат</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Возврат возможен только до начала разработки, с удержанием 5% за консультацию и резерв времени.</p>
+          </div>
+          <div class="glass-card p-7" data-reveal="0">
+            <p class="font-mono text-sm text-ice-300">deploy()</p>
+            <h3 class="mt-3 font-display text-base font-600">Запуск и код</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Помощь с хостингом и запуском входит в цену. После полной оплаты исходный код переходит к вам.</p>
+          </div>
+          <div class="glass-card p-7" data-reveal="60">
+            <p class="font-mono text-sm text-ice-300">nda()</p>
+            <h3 class="mt-3 font-display text-base font-600">Конфиденциальность</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Не разглашаю информацию о проектах клиентов и удаляю данные по запросу. В портфолио показываю работы без деталей.</p>
+          </div>
+          <div class="glass-card p-7" data-reveal="120">
+            <p class="font-mono text-sm text-ice-300">hours()</p>
+            <h3 class="mt-3 font-display text-base font-600">Режим работы</h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Отвечаю в течение 24 часов в рабочие дни. По субботам и воскресеньям не работаю.</p>
+          </div>
+        </div>
+
+        <p class="mt-8 text-center" data-reveal="0">
+          <a href="https://telegra.ph/POLITIKA-KONFIDENCIALNOSTI-I-USLOVIYA-RABOTY-w1cwmdev-11-15" target="_blank" rel="noopener" class="link-ice text-sm">
+            Читать политику полностью
+          </a>
+        </p>
+      </div>
+    </section>
+
+    <!-- ==================== КОНСТРУКТОР ТЗ ==================== -->
+    <section id="order" class="section-pad">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div data-reveal="0">
+          <p class="section-kicker">Заявка</p>
+          <h2 class="section-title">Соберите ТЗ за минуту</h2>
+          <p class="mt-4 max-w-2xl text-slate-400">
+            Отметьте, что нужно, и нажмите кнопку. Откроется чат со мной
+            с уже готовым текстом заявки.
+          </p>
+        </div>
+
+        <form id="order-form" class="mt-12 grid gap-8 lg:grid-cols-[1fr_320px] items-start" novalidate>
+
+          <!-- ==== Левая колонка: параметры ==== -->
+          <div class="space-y-9" data-reveal="80">
+
+            <!-- 1. Что нужно сделать (чипы рендерятся из js/config.js) -->
+            <fieldset>
+              <legend class="constructor-legend">
+                <span class="constructor-step">1</span> Что нужно сделать
+              </legend>
+              <div id="order-types" class="mt-4 flex flex-wrap gap-2.5"></div>
+            </fieldset>
+
+            <!-- 2. Какие функции нужны -->
+            <fieldset>
+              <legend class="constructor-legend">
+                <span class="constructor-step">2</span> Какие функции нужны
+              </legend>
+              <div id="order-functions" class="mt-4 flex flex-wrap gap-2.5"></div>
+            </fieldset>
+
+            <!-- 3. Когда нужно -->
+            <fieldset>
+              <legend class="constructor-legend">
+                <span class="constructor-step">3</span> Когда нужно
+              </legend>
+              <div id="order-terms" class="mt-4 flex flex-wrap gap-2.5"></div>
+            </fieldset>
+
+            <!-- 4. Описание задачи -->
+            <fieldset>
+              <legend class="constructor-legend">
+                <span class="constructor-step">4</span> Опишите задачу своими словами
+              </legend>
+              <textarea id="order-msg" name="msg" rows="4"
+                        placeholder="Например: нужен бот-магазин с оплатой и автовыдачей…"
+                        class="text-input mt-4 resize-y"></textarea>
+            </fieldset>
+          </div>
+
+          <!-- ==== Правая колонка: чек со сметой и отправкой ==== -->
+          <aside class="receipt lg:sticky lg:top-24" data-reveal="160">
+            <p class="receipt-title">чек · тз на бота</p>
+
+            <hr class="receipt-sep">
+
+            <div id="receipt-lines" aria-live="polite"></div>
+
+            <hr class="receipt-sep">
+
+            <div class="receipt-total">
+              <span>итого</span>
+              <span id="order-total">от 1 000 ₽</span>
+            </div>
+            <p id="order-range" class="receipt-range"></p>
+
+            <hr class="receipt-sep">
+
+            <p class="receipt-note">
+              цены начального уровня · точная стоимость —<br>после обсуждения задачи
+            </p>
+
+            <button type="submit" class="btn btn-primary sheen mt-5 w-full px-5 py-4 text-base">
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/>
+              </svg>
+              Отправить ТЗ в Telegram
+            </button>
+
+            <p class="receipt-note">откроется чат с готовым текстом ·<br>копия заявки — в буфере обмена</p>
+            <p id="order-note" class="receipt-copy" aria-live="polite"></p>
+          </aside>
+        </form>
+      </div>
+    </section>
+
+    <!-- ==================== FAQ ==================== -->
+    <section id="faq" class="section-pad">
+      <div class="mx-auto max-w-3xl px-4 sm:px-6">
+        <div class="text-center" data-reveal="0">
+          <p class="section-kicker">FAQ</p>
+          <h2 class="section-title">Частые вопросы</h2>
+        </div>
+
+        <div class="mt-12 space-y-3" id="faq-list">
+
+          <!-- Аккордеон: заголовок-кнопка + сворачиваемая панель -->
+          <div class="faq-item" data-reveal="0">
+            <h3>
+              <button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-a1">
+                <span>Сколько стоит бот?</span>
+                <svg class="faq-chevron h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+            </h3>
+            <div id="faq-a1" class="faq-panel">
+              <div class="faq-content">
+                Начальная цена - 1000 ₽. Точная цена зависит от задачи: напишите ТЗ, и я назову стоимость.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item" data-reveal="60">
+            <h3>
+              <button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-a2">
+                <span>Нужна ли предоплата?</span>
+                <svg class="faq-chevron h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+            </h3>
+            <div id="faq-a2" class="faq-panel">
+              <div class="faq-content">
+                Да, перед стартом нужна предоплата 35–50%. Точный процент зависит от суммы проекта.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item" data-reveal="120">
+            <h3>
+              <button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-a3">
+                <span>Как быстро будет готово?</span>
+                <svg class="faq-chevron h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+            </h3>
+            <div id="faq-a3" class="faq-panel">
+              <div class="faq-content">
+                В среднем на разработку уходит от 1 до 7 дней. В зависимости от загрузки.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item" data-reveal="180">
+            <h3>
+              <button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-a4">
+                <span>Где будет работать бот?</span>
+                <svg class="faq-chevron h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+            </h3>
+            <div id="faq-a4" class="faq-panel">
+              <div class="faq-content">
+                Запуск на сервере входит в работу. Управлять ботом можно через удобную админку.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item" data-reveal="240">
+            <h3>
+              <button type="button" class="faq-trigger" aria-expanded="false" aria-controls="faq-a5">
+                <span>Где посмотреть демо-ботов?</span>
+                <svg class="faq-chevron h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+            </h3>
+            <div id="faq-a5" class="faq-panel">
+              <div class="faq-content">
+                Демо крутятся на Railway — напиши в лс, скину ссылки и дам потыкать перед заказом.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== КОНТАКТЫ ==================== -->
+    <section id="contacts" class="section-pad">
+      <div class="mx-auto max-w-3xl px-4 sm:px-6 text-center">
+        <div data-reveal="0">
+          <p class="section-kicker">Контакты</p>
+          <h2 class="section-title">Нужен бот? Пишите ТЗ</h2>
+          <p class="mt-6 max-w-md mx-auto text-slate-300 leading-relaxed">
+            Опишите задачу в двух-трёх предложениях. Отвечу, сколько это стоит
+            и за сколько дней сделаю.
+          </p>
+
+          <div class="mt-9 flex flex-wrap justify-center gap-4">
+            <a data-telegram-link target="_blank" rel="noopener"
+               class="btn btn-primary sheen px-6 py-3.5 text-sm">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/>
+              </svg>
+              Написать <span data-telegram-name>@w1cwmdev</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== ПОДВАЛ ==================== -->
+  <footer class="border-t border-white/10 bg-night-950/80">
+    <div class="mx-auto max-w-6xl px-4 sm:px-6 py-10">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-6">
+        <a href="#hero" class="nav-link flex items-center gap-2 font-mono text-sm text-ice-300">
+          <span class="grid place-items-center h-8 w-8 rounded-lg bg-ice-500/15 border border-ice-400/30 text-ice-400">
+            <svg class="logo-flake h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 2v20M4 6l16 12M20 6L4 18M12 6l-2-2M12 6l2-2M12 18l-2 2M12 18l2 2"/>
+            </svg>
+          </span>
+          @w1cwmdev
+        </a>
+
+        <a href="https://telegra.ph/POLITIKA-KONFIDENCIALNOSTI-I-USLOVIYA-RABOTY-w1cwmdev-11-15" target="_blank" rel="noopener"
+           class="nav-link text-sm text-slate-400 hover:text-ice-300">
+          Политика конфиденциальности и условия работы
+        </a>
+
+        <p class="text-sm text-slate-500">© <span id="year">2026</span> w1cwmdev</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Всплывающие уведомления (toast) -->
+  <div id="toast-root" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-[90] flex flex-col items-center gap-2" aria-live="polite"></div>
+
+  <!-- Скрипты: конфиг → снег → логика страницы -->
+  <script src="js/config.js?v=25"></script>
+  <script src="js/snow.js?v=25"></script>
+  <script src="js/main.js?v=25"></script>
+</body>
+</html>

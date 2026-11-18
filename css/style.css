@@ -1,0 +1,1177 @@
+/* ============================================================
+   stroxed — Liquid Glass Edition (Soft / Translucent)
+   Прозрачное стекло, длинные плавные анимации без отскока
+   ============================================================ */
+
+/* ---------- Дизайн-токены ---------- */
+
+:root {
+  /* Мягкие кривые: без «отскока», длинный плавный выход */
+  --ease-smooth: cubic-bezier(.16, 1, .3, 1);   /* easeOutExpo — основной */
+  --ease-soft:   cubic-bezier(.33, 1, .68, 1);  /* easeOutCubic — фон/цвет */
+
+  /* Прозрачное стекло: низкая альфа, высокий blur */
+  --glass-border: rgba(255, 255, 255, .10);
+  --glass-bg-a: rgba(255, 255, 255, .055);
+  --glass-bg-b: rgba(255, 255, 255, .015);
+  --glass-blur: 26px;
+
+  /* Спекулярный блик + мягкая тень */
+  --glass-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .13),
+    inset 0 -1px 0 rgba(255, 255, 255, .03),
+    0 24px 60px -24px rgba(2, 8, 20, .65);
+}
+
+/* ---------- База ---------- */
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
+}
+
+::selection {
+  background: rgba(56, 189, 250, .35);
+  color: #E8F1F8;
+}
+
+/* Тонкий «ледяной» скроллбар */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: #060C18; }
+::-webkit-scrollbar-thumb {
+  background: rgba(125, 211, 252, .22);
+  border-radius: 8px;
+  border: 2px solid #060C18;
+  transition: background .5s var(--ease-soft);
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(125, 211, 252, .45); }
+
+:focus-visible {
+  outline: 2px solid #7DD3FC;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ---------- Фоновые слои: звёзды, аврора, снег ---------- */
+
+.snow-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.stars-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -20;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(29, 50, 82, .55), transparent),
+    #060C18;
+}
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: #E8F1F8;
+  animation: star-twinkle var(--tw, 3s) ease-in-out var(--delay, 0s) infinite;
+}
+@keyframes star-twinkle {
+  0%, 100% { opacity: var(--o-max, .8); transform: scale(1); }
+  50%      { opacity: var(--o-min, .15); transform: scale(.75); }
+}
+
+.aurora-blob { animation: aurora-drift 30s ease-in-out infinite alternate; }
+.aurora-b { animation-duration: 40s; animation-delay: -14s; }
+.aurora-c { animation-duration: 36s; animation-delay: -24s; }
+@keyframes aurora-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(4rem, 2rem, 0) scale(1.1); }
+  100% { transform: translate3d(-3rem, -1.5rem, 0) scale(.95); }
+}
+
+/* ---------- Liquid Glass: базовый материал (прозрачный) ---------- */
+
+.glass-panel {
+  position: relative;
+  background: linear-gradient(135deg, var(--glass-bg-a), var(--glass-bg-b));
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+/* Бегающий блик для кнопок: мягкая волна */
+.sheen {
+  position: relative;
+  overflow: hidden;
+}
+.sheen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 34%, rgba(255, 255, 255, .26) 50%, transparent 66%);
+  transform: translateX(-130%);
+  transition: transform 1.4s var(--ease-smooth);
+  pointer-events: none;
+}
+.sheen:hover::after { transform: translateX(130%); }
+
+/* ---------- Шапка: плавающая стеклянная капсула ---------- */
+
+.glass-pill {
+  background: linear-gradient(135deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .02));
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, .11);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .15),
+    0 14px 44px -14px rgba(2, 8, 20, .55);
+  transition: box-shadow .8s var(--ease-smooth), background .8s var(--ease-smooth);
+  animation: pill-drop 1s var(--ease-smooth) .08s both; /* вход шапки при загрузке */
+}
+@keyframes pill-drop {
+  from { opacity: 0; transform: translateY(-14px); }
+  to   { opacity: 1; transform: none; }
+}
+#site-header.scrolled .glass-pill {
+  background: linear-gradient(135deg, rgba(255, 255, 255, .095), rgba(255, 255, 255, .03));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .17),
+    0 20px 54px -14px rgba(2, 8, 20, .7);
+}
+
+/* Навигация: мягкая подсветка под курсором */
+.nav-link { transition: color .5s var(--ease-soft), background-color .5s var(--ease-soft); }
+nav .nav-link:hover { background: rgba(255, 255, 255, .055); }
+.nav-spy.active { color: #7DD3FC; background: rgba(56, 189, 250, .09); }
+
+/* Мобильное меню: длинное плавное раскрытие */
+.mobile-menu {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  margin-top: .5rem;
+  transform: translateY(-4px);
+  /* visibility с задержкой: закрытое меню нельзя проскроллить табом */
+  visibility: hidden;
+  transition:
+    max-height .6s var(--ease-smooth),
+    opacity .5s var(--ease-smooth),
+    transform .6s var(--ease-smooth),
+    margin .5s var(--ease-smooth),
+    visibility 0s linear .6s;
+}
+.mobile-menu.open {
+  max-height: 30rem;
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition:
+    max-height .6s var(--ease-smooth),
+    opacity .5s var(--ease-smooth),
+    transform .6s var(--ease-smooth),
+    margin .5s var(--ease-smooth),
+    visibility 0s;
+}
+
+/* Бургер: плавное превращение в крест */
+.burger-box { display: grid; gap: 5px; width: 20px; }
+.burger-line {
+  height: 2px;
+  border-radius: 2px;
+  background: #E8F1F8;
+  transition: transform .55s var(--ease-smooth), opacity .4s var(--ease-soft);
+}
+#burger[aria-expanded="true"] .burger-line:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+#burger[aria-expanded="true"] .burger-line:nth-child(2) { opacity: 0; }
+#burger[aria-expanded="true"] .burger-line:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ---------- Кнопки: прозрачное стекло, плавный ход ---------- */
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .55rem;
+  cursor: pointer;
+  border-radius: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  transition:
+    transform .7s var(--ease-smooth),
+    box-shadow .7s var(--ease-smooth),
+    background-color .5s var(--ease-soft),
+    border-color .5s var(--ease-soft),
+    filter .5s var(--ease-soft);
+  will-change: transform;
+}
+.btn:hover  { transform: translateY(-1.5px) scale(1.008); }
+.btn:active { transform: translateY(0) scale(.985); transition-duration: .25s; }
+.btn svg    { flex: none; }
+
+/* Основная: ледяной градиент + блик + мягкий ореол */
+.btn-primary {
+  background: linear-gradient(180deg, rgba(125, 211, 252, .92) 0%, rgba(56, 189, 250, .92) 100%);
+  color: #060C18;
+  border: 1px solid rgba(255, 255, 255, .38);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .55),
+    inset 0 -3px 8px rgba(14, 165, 233, .35),
+    0 10px 34px -10px rgba(56, 189, 250, .45);
+}
+.btn-primary:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .6),
+    inset 0 -3px 8px rgba(14, 165, 233, .35),
+    0 16px 48px -10px rgba(56, 189, 250, .6);
+  filter: brightness(1.04);
+}
+
+/* Вторичная: прозрачное тёмное стекло */
+.btn-ghost {
+  color: #E8F1F8;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .018));
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, .12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1);
+}
+.btn-ghost:hover {
+  border-color: rgba(125, 211, 252, .35);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .09), rgba(255, 255, 255, .03));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .15),
+    0 10px 30px -12px rgba(56, 189, 250, .25);
+}
+
+/* Круглая иконка-кнопка (снег, бургер) */
+.btn-icon {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: .9rem;
+  color: #BAE6FD;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .018));
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, .11);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1);
+}
+.btn-icon:hover {
+  border-color: rgba(125, 211, 252, .35);
+  color: #E8F1F8;
+  transform: translateY(-1.5px) rotate(-3deg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .15),
+    0 8px 24px -8px rgba(56, 189, 250, .3);
+}
+.btn-icon:active { transform: scale(.96); transition-duration: .25s; }
+
+/* ---------- Появление Hero при загрузке: длинный и мягкий ---------- */
+
+.hero-anim {
+  opacity: 0;
+  animation: hero-in 1.3s var(--ease-smooth) forwards;
+  animation-delay: var(--hd, 0s);
+}
+@keyframes hero-in {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---------- Scroll-reveal: медленное плавное появление ---------- */
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(22px);
+  filter: blur(8px); /* ⚙ расфокус на входе: блок «приходит в резкость» (0 = выкл) */
+  transition:
+    opacity 1.2s var(--ease-smooth) var(--reveal-delay, 0ms),
+    transform 1.2s var(--ease-smooth) var(--reveal-delay, 0ms),
+    filter 1.2s var(--ease-smooth) var(--reveal-delay, 0ms);
+  will-change: opacity, transform, filter;
+}
+[data-reveal].revealed {
+  opacity: 1;
+  transform: none;
+  filter: blur(0);
+}
+
+/* ---------- Типографика секций ---------- */
+
+.section-pad { padding-block: clamp(4.5rem, 10vw, 8rem); }
+
+.section-kicker {
+  display: inline-block;
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .35em;
+  text-transform: uppercase;
+  color: #7DD3FC;
+}
+
+.section-title {
+  margin-top: 1rem;
+  font-family: 'Unbounded', sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  line-height: 1.15;
+}
+
+.hero-gradient-text {
+  background: linear-gradient(100deg, #7DD3FC 0%, #38BDF8 45%, #818CF8 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  white-space: nowrap;
+  animation: gradient-slide 7s ease-in-out infinite alternate; /* ⚙ скорость shimmer */
+}
+@keyframes gradient-slide {
+  from { background-position: 0% 50%; }
+  to   { background-position: 100% 50%; }
+}
+
+/* ---------- Обо мне: блок стека ---------- */
+
+.tech-group-label {
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #7DD3FC;
+}
+.tech-tags { margin-top: .75rem; display: flex; flex-wrap: wrap; gap: .5rem; }
+.tech-tag {
+  padding: .35rem .8rem;
+  font-size: .8rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(255, 255, 255, .03);
+  color: #CBD5E1;
+  opacity: 0; /* каскадный вход — см. MOTION PACK */
+  transition:
+    border-color .6s var(--ease-soft),
+    color .6s var(--ease-soft),
+    background-color .6s var(--ease-soft),
+    transform .7s var(--ease-smooth);
+}
+.tech-tag:hover {
+  border-color: rgba(125, 211, 252, .4);
+  color: #E8F1F8;
+  background: rgba(56, 189, 250, .07);
+  transform: translateY(-1px);
+}
+
+/* ---------- Карточки: прозрачное стекло с бликом ---------- */
+
+.glass-card {
+  position: relative;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, .09);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .045), rgba(255, 255, 255, .012));
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.45);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.45);
+  box-shadow: var(--glass-shadow);
+  transition:
+    transform .9s var(--ease-smooth),
+    border-color .7s var(--ease-soft),
+    box-shadow .9s var(--ease-smooth);
+  will-change: transform;
+}
+/* Спекулярное свечение в верхнем углу, мягко усиливается при наведении */
+.glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(120% 55% at 18% 0%, rgba(255, 255, 255, .09), transparent 55%);
+  opacity: .6;
+  transition: opacity .9s var(--ease-soft);
+  pointer-events: none;
+}
+.glass-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(125, 211, 252, .3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .16),
+    0 30px 70px -24px rgba(2, 8, 20, .75),
+    0 0 44px -10px rgba(56, 189, 250, .2);
+}
+.glass-card:hover::before { opacity: .9; }
+
+/* Услуги и работы наследуют стекло */
+.service-card { padding: 1.75rem; }
+.service-card .service-icon {
+  display: grid;
+  place-items: center;
+  height: 3rem;
+  width: 3rem;
+  border-radius: 1rem;
+  color: #7DD3FC;
+  background: linear-gradient(135deg, rgba(56, 189, 250, .12), rgba(56, 189, 250, .035));
+  border: 1px solid rgba(125, 211, 252, .22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .13);
+  transition: transform .8s var(--ease-smooth);
+}
+.service-card:hover .service-icon { transform: scale(1.06) rotate(-3deg); }
+
+.work-card { overflow: hidden; }
+.work-thumb {
+  display: grid;
+  place-items: center;
+  height: 11rem;
+  background-image: linear-gradient(135deg, var(--tw-gradient-stops));
+}
+.work-thumb .work-icon {
+  color: rgba(255, 255, 255, .92);
+  filter: drop-shadow(0 6px 14px rgba(2, 8, 20, .55));
+  /* idle-парение в transform, hover-эффект — в независимых scale/rotate,
+     чтобы анимация и hover не спорили за одно свойство */
+  animation: icon-drift 6.5s ease-in-out infinite;
+  transition: scale .9s var(--ease-smooth), rotate .9s var(--ease-smooth);
+}
+.work-card:hover .work-thumb .work-icon { scale: 1.1; rotate: -3deg; }
+/* фазовый сдвиг, чтобы иконки не парились в такт */
+.work-card:nth-child(2) .work-icon { animation-delay: -1.6s; }
+.work-card:nth-child(3) .work-icon { animation-delay: -3.2s; }
+.work-card:nth-child(4) .work-icon { animation-delay: -4.9s; }
+.work-tag {
+  padding: .2rem .65rem;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  background: rgba(56, 189, 250, .1);
+  color: #7DD3FC;
+}
+
+.process-step { padding: 1.5rem; }
+.process-num {
+  font-family: 'Unbounded', sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #060C18;
+  background: linear-gradient(180deg, #7DD3FC, #38BDF8);
+  padding: .3rem .7rem;
+  border-radius: .8rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 6px 18px -6px rgba(56, 189, 250, .4);
+}
+
+/* ---------- Конструктор ТЗ ---------- */
+
+.constructor-legend {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  font-family: 'Unbounded', sans-serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+.constructor-step {
+  display: inline-grid;
+  place-items: center;
+  height: 1.75rem;
+  width: 1.75rem;
+  font-size: .85rem;
+  font-weight: 700;
+  color: #7DD3FC;
+  border: 1px solid rgba(125, 211, 252, .35);
+  border-radius: .7rem;
+  background: rgba(56, 189, 250, .08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+
+/* Радио-карточка / чип: прозрачное стекло, состояние — data-checked */
+.choice-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  padding: 1rem 1.1rem;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(255, 255, 255, .09);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .04), rgba(255, 255, 255, .012));
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color .6s var(--ease-soft),
+    background .6s var(--ease-soft),
+    transform .8s var(--ease-smooth),
+    box-shadow .7s var(--ease-smooth);
+}
+.choice-card:hover {
+  border-color: rgba(125, 211, 252, .32);
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .02));
+}
+.choice-card:active { transform: scale(.99); transition-duration: .25s; }
+.choice-card[data-checked="true"] {
+  border-color: rgba(56, 189, 250, .75);
+  background: linear-gradient(135deg, rgba(56, 189, 250, .1), rgba(56, 189, 250, .035));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .15),
+    0 0 26px -6px rgba(56, 189, 250, .3);
+}
+.choice-card .choice-title { font-weight: 700; font-size: .95rem; }
+.choice-card .choice-price { font-size: .8rem; color: #7DD3FC; font-weight: 600; }
+.choice-card .choice-hint  { font-size: .75rem; color: #94A3B8; }
+
+.feature-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .55rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(255, 255, 255, .03);
+  cursor: pointer;
+  font-size: .85rem;
+  font-weight: 600;
+  transition:
+    border-color .6s var(--ease-soft),
+    background .6s var(--ease-soft),
+    color .6s var(--ease-soft),
+    transform .8s var(--ease-smooth);
+}
+.feature-chip:hover {
+  border-color: rgba(125, 211, 252, .32);
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, .05);
+}
+.feature-chip:active { transform: scale(.98); transition-duration: .25s; }
+.feature-chip[data-checked="true"] {
+  border-color: rgba(56, 189, 250, .75);
+  background: rgba(56, 189, 250, .09);
+  color: #BAE6FD;
+}
+.feature-chip .chip-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+  color: #7DD3FC;
+  flex: none;
+}
+.feature-chip .chip-icon svg { width: 100%; height: 100%; display: block; }
+.feature-chip[data-checked="true"] .chip-icon { color: #BAE6FD; }
+.feature-chip .chip-check {
+  width: .85rem; height: .85rem;
+  opacity: 0; transform: scale(.6);
+  transition: opacity .45s var(--ease-soft), transform .6s var(--ease-smooth);
+}
+.feature-chip[data-checked="true"] .chip-check { opacity: 1; transform: scale(1); }
+
+/* ---------- Формы ---------- */
+
+.field-label {
+  display: block;
+  font-size: .85rem;
+  font-weight: 700;
+  color: #E8F1F8;
+}
+
+.text-input {
+  display: block;
+  width: 100%;
+  padding: .8rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(255, 255, 255, .035);
+  color: #E8F1F8;
+  font-size: .95rem;
+  transition:
+    border-color .5s var(--ease-soft),
+    box-shadow .5s var(--ease-soft),
+    background .5s var(--ease-soft);
+}
+.text-input::placeholder { color: #64748B; }
+.text-input:focus {
+  outline: none;
+  border-color: rgba(56, 189, 250, .8);
+  background: rgba(56, 189, 250, .045);
+  box-shadow: 0 0 0 4px rgba(56, 189, 250, .12), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+.text-input.invalid {
+  border-color: rgba(248, 113, 113, .8);
+  box-shadow: 0 0 0 4px rgba(248, 113, 113, .12);
+}
+.text-input.valid { border-color: rgba(52, 211, 153, .45); }
+
+.error-text {
+  min-height: 1.1rem;
+  margin-top: .4rem;
+  font-size: .78rem;
+  font-weight: 600;
+  color: #F87171;
+}
+.status-text {
+  margin-top: 1rem;
+  font-size: .85rem;
+  font-weight: 600;
+  text-align: center;
+}
+.status-text.success { color: #34D399; }
+.status-text.error   { color: #F87171; }
+
+/* ---------- FAQ-аккордеон: прозрачное стекло ---------- */
+
+.faq-item {
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .04), rgba(255, 255, 255, .012));
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  overflow: hidden;
+  transition:
+    border-color .7s var(--ease-soft),
+    background .7s var(--ease-soft);
+}
+.faq-item:hover { border-color: rgba(125, 211, 252, .22); }
+.faq-item[data-open="true"] {
+  border-color: rgba(125, 211, 252, .32);
+  background: linear-gradient(135deg, rgba(56, 189, 250, .055), rgba(255, 255, 255, .02));
+}
+
+.faq-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  padding: 1.15rem 1.4rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: .98rem;
+  color: #E8F1F8;
+  transition: color .45s var(--ease-soft);
+}
+.faq-trigger:hover { color: #7DD3FC; }
+
+.faq-chevron {
+  flex: none;
+  color: #7DD3FC;
+  transition: transform .7s var(--ease-smooth);
+}
+.faq-trigger[aria-expanded="true"] .faq-chevron { transform: rotate(180deg); }
+
+.faq-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows .65s var(--ease-smooth);
+}
+.faq-panel.open { grid-template-rows: 1fr; }
+.faq-panel > .faq-content {
+  overflow: hidden;
+  padding: 0 1.4rem;
+  color: #94A3B8;
+  font-size: .92rem;
+  line-height: 1.65;
+  opacity: 0;
+  transform: translateY(-3px);
+  transition:
+    opacity .55s var(--ease-soft) .08s,
+    transform .65s var(--ease-smooth) .08s,
+    padding .65s var(--ease-smooth);
+}
+.faq-panel.open > .faq-content {
+  opacity: 1;
+  transform: none;
+  padding: 0 1.4rem 1.3rem;
+}
+
+/* ---------- Контакты ---------- */
+
+.contact-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .04), rgba(255, 255, 255, .012));
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  transition:
+    border-color .7s var(--ease-soft),
+    transform .9s var(--ease-smooth),
+    box-shadow .8s var(--ease-smooth);
+}
+a.contact-row:hover {
+  border-color: rgba(125, 211, 252, .32);
+  transform: translateX(4px);
+  box-shadow: 0 12px 36px -14px rgba(56, 189, 250, .25);
+}
+.contact-icon {
+  display: grid;
+  place-items: center;
+  height: 2.75rem;
+  width: 2.75rem;
+  border-radius: 1rem;
+  color: #7DD3FC;
+  background: linear-gradient(135deg, rgba(56, 189, 250, .1), rgba(56, 189, 250, .03));
+  border: 1px solid rgba(125, 211, 252, .2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+
+.link-ice {
+  color: #7DD3FC;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: rgba(125, 211, 252, .4);
+  text-underline-offset: 3px;
+  transition: color .45s var(--ease-soft), text-decoration-color .45s var(--ease-soft);
+}
+.link-ice:hover { color: #BAE6FD; text-decoration-color: #BAE6FD; }
+
+/* ---------- Toast: прозрачная стеклянная капсула ---------- */
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .8rem 1.3rem;
+  border-radius: 1rem;
+  font-size: .9rem;
+  font-weight: 600;
+  color: #E8F1F8;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .03));
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
+  border: 1px solid rgba(125, 211, 252, .28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .15),
+    0 14px 44px -12px rgba(2, 8, 20, .7);
+  animation:
+    toast-in .7s var(--ease-smooth),
+    toast-out .5s var(--ease-smooth) 2.7s forwards;
+}
+.toast svg { width: 1.1rem; height: 1.1rem; flex: none; color: #7DD3FC; }
+@keyframes toast-in  { from { opacity: 0; transform: translateY(12px); } }
+@keyframes toast-out { to   { opacity: 0; transform: translateY(8px); } }
+
+/* ---------- Индикатор скролла ---------- */
+
+.scroll-hint {
+  transition: color .5s var(--ease-soft), transform .6s var(--ease-smooth), opacity .5s var(--ease-soft);
+}
+/* transform обязан включать -50%: иначе перетирается центрирование
+   из Tailwind-класса -translate-x-1/2 и стрелка прыгает вправо */
+.scroll-hint:hover { transform: translate(-50%, 3px); }
+
+/* ============================================================
+   🎬 CINEMATIC PACK — кинематографичный слой
+   Правило производительности: всё едет только на
+   transform / opacity (GPU-композитинг, без layout/paint).
+   filter: blur — только короткими вспышками на маленьких
+   элементах (композитится в современных браузерах).
+   Параметры для подкрутки помечены ⚙
+   ============================================================ */
+
+/* --- Прогресс-бар скролла (scaleX — только композит) --- */
+
+.progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px; /* ⚙ толщина полосы */
+  z-index: 60;
+  background: linear-gradient(90deg, #7DD3FC, #38BDF8 50%, #818CF8);
+  transform: scaleX(var(--scroll-progress, 0));
+  transform-origin: 0 50%;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* --- Герой: кинематографичный уход при прокрутке (двигает JS) --- */
+
+[data-hero-fade] { will-change: transform, opacity; }
+
+/* Сияние: контейнер закреплён, JS добавляет только пульс от скорости
+   скролла (scale). Дети дрейфуют своей keyframe-анимацией */
+#aurora-field { will-change: transform; }
+
+/* --- 3D-tilt карточек + блик за курсором --- */
+
+/* JS плавно пишет --rx/--ry/--lift/--gx/--gy каждый кадр (damp-физика),
+   поэтому transition на transform НЕ нужен — иначе двойное сглаживание */
+.glass-card.tilt-card {
+  --rx: 0deg;
+  --ry: 0deg;
+  --lift: 0px;
+  --gx: 50%;
+  --gy: 50%;
+  /* perspective внутри transform = независимая сцена на карточке */
+  transform: perspective(900px) translate3d(0, var(--lift), 0)
+             rotateX(var(--rx)) rotateY(var(--ry));
+  transform-style: preserve-3d; /* дети могут выскочить по Z */
+  transition: border-color .7s var(--ease-soft), box-shadow .9s var(--ease-smooth);
+}
+
+/* Блик-отражение, следующее за курсором (позиция — в --gx/--gy) */
+.glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    340px circle at var(--gx, 50%) var(--gy, 50%),
+    rgba(255, 255, 255, .15), /* ⚙ интенсивность блика */
+    transparent 55%           /* ⚙ размер пятна */
+  );
+  opacity: 0;
+  transition: opacity .6s var(--ease-soft);
+  pointer-events: none;
+  z-index: 2; /* поверх контента — как настоящее стекло */
+}
+.tilt-card:hover .glare { opacity: 1; }
+
+/* Микро-глубина: иконка «всплывает» над стеклом (только на карточках
+   без overflow:hidden — иначе 3D сплющится) */
+.service-card.tilt-card .service-icon {
+  transform: translateZ(26px); /* ⚙ глубина слоя иконки */
+}
+.service-card.tilt-card:hover .service-icon {
+  transform: translateZ(26px) scale(1.06) rotate(-3deg);
+}
+
+/* --- Магнитные кнопки --- */
+
+/* transform ведёт JS-физика, поэтому из transition убран,
+   чтобы CSS-переход не спорил с покадровым сглаживанием */
+.btn.magnetic {
+  transition:
+    box-shadow .7s var(--ease-smooth),
+    border-color .5s var(--ease-soft),
+    filter .5s var(--ease-soft);
+}
+
+/* --- Ripple: волна от клика (scale+opacity только) --- */
+
+.ripple-ink {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, .45) 0%,  /* ⚙ плотность волны */
+    rgba(255, 255, 255, 0) 62%    /* ⚙ мягкость края */
+  );
+  transform: translate(-50%, -50%) scale(0);
+  opacity: .8;
+  animation: ripple .85s var(--ease-smooth) forwards; /* ⚙ скорость волны */
+  z-index: 3;
+}
+@keyframes ripple {
+  to {
+    transform: translate(-50%, -50%) scale(2.4); /* ⚙ радиус разлёта */
+    opacity: 0;
+  }
+}
+
+/* --- Заголовки: пословный каскад с маской и blur --- */
+
+.split-title .w {
+  display: inline-block;
+  overflow: hidden;          /* маска: слово «выезжает» из строки */
+  vertical-align: bottom;
+  padding-bottom: .14em;     /* не резать хвосты «у, р, й» */
+  margin-bottom: -.14em;
+}
+.split-title .wi {
+  display: inline-block;
+  transform: translateY(118%); /* ⚙ глубина выезда */
+  opacity: 0;
+  filter: blur(6px);           /* ⚙ расфокус слова */
+  transition:
+    transform 1.1s var(--ease-smooth) calc(var(--i, 0) * 70ms),  /* ⚙ шаг каскада */
+    opacity .9s var(--ease-soft) calc(var(--i, 0) * 70ms),
+    filter 1.1s var(--ease-smooth) calc(var(--i, 0) * 70ms);
+  will-change: transform, opacity, filter;
+}
+.split-title.revealed .wi {
+  transform: translateY(0);
+  opacity: 1;
+  filter: blur(0);
+}
+
+/* ============================================================
+   💓 LIVING UI — «дыхание» в стиле iOS
+   Непрерывные микро-движения с длинным ease-in-out: сайт не
+   стоит на месте, но и не дёргается. Все циклы 2.5–6с.
+   ============================================================ */
+
+/* --- Статус «Открыт для заказов»: мягкий пульс-радар --- */
+
+/* Ядро точки дышит масштабом */
+.status-dot {
+  animation: dot-breathe 2.4s cubic-bezier(.45, 0, .55, 1) infinite; /* ⚙ ритм дыхания */
+}
+@keyframes dot-breathe {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%      { transform: scale(1.3); opacity: .8; }
+}
+
+/* Два расходящихся кольца со сдвигом фазы — эффект радара */
+.status-ring {
+  animation: ring-ripple 2.4s cubic-bezier(.22, 1, .36, 1) infinite;
+}
+.status-ring-delay { animation-delay: 1.2s; } /* ⚙ сдвиг второго кольца */
+@keyframes ring-ripple {
+  0%        { transform: scale(1);   opacity: .5; }
+  80%, 100% { transform: scale(2.7); opacity: 0; }
+}
+
+/* Пилюля статуса: вход в каскаде героя + затем вечное «дыхание».
+   ВАЖНО: animation — шорткат, второй класс его перебил бы, поэтому обе
+   анимации объединены. hero-in играет один раз (fill both — элемент
+   невидим до старта), дыхание подключается после входа */
+.status-pill {
+  animation:
+    hero-in 1.3s var(--ease-smooth) var(--hd, 0s) both,
+    pill-breathe 6s ease-in-out calc(var(--hd, 0s) + 1.6s) infinite;
+}
+@keyframes pill-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.02); }
+}
+
+/* --- Главная CTA: мягкое дыхание неонового ореола ---
+   Анимируется box-shadow; hover-усиление идёт через регистрируемую
+   переменную --glow-boost (@property) — keyframes и hover-состояние
+   больше не спорят за одно свойство */
+
+@property --glow-boost {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: false;
+}
+
+.btn-primary.breathe {
+  animation: glow-breathe 5s ease-in-out infinite; /* ⚙ период ореола */
+  transition: --glow-boost .5s var(--ease-soft);
+}
+.btn-primary.breathe:hover { --glow-boost: 1; }
+@keyframes glow-breathe {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .55),
+      inset 0 -3px 8px rgba(14, 165, 233, .35),
+      0 calc(10px + 6px * var(--glow-boost)) calc(30px - 2px * var(--glow-boost)) -10px
+        rgba(56, 189, 250, calc(.4 + .4 * var(--glow-boost)));
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .55),
+      inset 0 -3px 8px rgba(14, 165, 233, .35),
+      0 calc(14px + 6px * var(--glow-boost)) calc(48px - 4px * var(--glow-boost)) -8px
+        rgba(56, 189, 250, calc(.8 + .2 * var(--glow-boost)));
+  }
+}
+
+/* --- Индикатор скролла: парение вместо дёрганого bounce --- */
+
+.scroll-float { animation: hint-float 2.6s ease-in-out infinite; }
+@keyframes hint-float {
+  0%, 100% { transform: translateY(0);    opacity: .5; }
+  50%      { transform: translateY(7px);  opacity: 1; }
+}
+
+/* --- Логотип: снежинка плавно вращается при наведении --- */
+
+.logo-flake { transition: transform .9s var(--ease-smooth); }
+a:hover .logo-flake { transform: rotate(180deg); } /* ⚙ угол поворота */
+
+/* ============================================================
+   🌊 MOTION PACK — движение, привязанное к скроллу и курсору
+   Всё на transform/opacity, физика — damp() из main.js
+   ============================================================ */
+
+/* --- Nav-glider: подсветка активного раздела скользит по меню ---
+   Позицию пишет JS (offsetLeft/offsetWidth активной ссылки).
+   Классика .nav-spy.active остаётся фолбэком без JS/reduced-motion */
+
+.nav-glider {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  height: calc(100% - 8px);
+  width: 0;
+  border-radius: 10px;
+  background: rgba(56, 189, 250, .09);
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 250, .16);
+  opacity: 0;
+  pointer-events: none;
+}
+.nav-glider.ready {
+  opacity: 1;
+  transition:
+    transform .7s var(--ease-smooth),
+    width .7s var(--ease-smooth),
+    opacity .4s var(--ease-soft);
+}
+/* со скользящим glider'ом статичная подложка ссылки не нужна */
+nav.has-glider .nav-spy.active { background: transparent; }
+
+/* --- Каскад тегов стека: индексы --i расставляет main.js --- */
+[data-reveal].revealed .tech-tag {
+  opacity: 1;
+  /* backwards: до старта держит from-кадр, после — hover работает обычным transition */
+  animation: tag-in .8s var(--ease-smooth) calc(var(--i, 0) * 45ms) backwards; /* ⚙ шаг каскада */
+}
+@keyframes tag-in {
+  from { opacity: 0; transform: translateY(10px) scale(.94); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes icon-drift {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+/* --- Киккер секции: ледяная черта выезжает перед текстом --- */
+.section-kicker::before {
+  content: '';
+  display: inline-block;
+  width: 2.4rem;
+  height: 2px;
+  margin-right: .8rem;
+  vertical-align: .2em;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(56, 189, 250, .9), rgba(56, 189, 250, 0));
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 1.1s var(--ease-smooth) .15s;
+}
+[data-reveal].revealed .section-kicker::before { transform: scaleX(1); }
+
+/* --- Бегущая строка между hero и услугами --- */
+.ticker {
+  overflow: hidden;
+  padding-block: .9rem;
+  border-block: 1px solid rgba(255, 255, 255, .06);
+}
+.ticker-line {
+  display: inline-block;
+  white-space: nowrap;
+  font-family: 'Unbounded', sans-serif;
+  font-size: .78rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(125, 211, 252, .55); /* ⚙ цвет строки */
+  animation: ticker-move 40s linear infinite; /* ⚙ скорость */
+}
+@keyframes ticker-move { to { transform: translateX(-50%); } }
+
+/* --- Смета конструктора: «пульс» числа при пересчёте --- */
+#order-total.bump { animation: total-bump .4s var(--ease-smooth); }
+@keyframes total-bump {
+  30% { transform: scale(1.08); }
+}
+
+/* ============================================================
+   🧾 ЧЕК — панель конструктора в виде бумажного чека
+   Светлая «бумага», зубчатые края (mask), моно-шрифт,
+   пунктирные разделители и строки с точками-лидерами
+   ============================================================ */
+
+.receipt {
+  position: relative;
+  padding: 1.75rem 1.5rem 1.5rem;
+  background: linear-gradient(180deg, #F4F8FC, #E7EEF6);
+  color: #0B1626;
+  box-shadow: 0 24px 60px -24px rgba(2, 8, 20, .85);
+  /* Зубчатые края сверху и снизу: две конические маски + сплошная середина */
+  --zz: 12px; /* ⚙ ширина зубца */
+  -webkit-mask:
+    conic-gradient(from 135deg at 50% 0%, #000 90deg, #0000 0) 0 100% / var(--zz) 10px repeat-x,
+    conic-gradient(from -45deg at 50% 100%, #000 90deg, #0000 0) 0 0 / var(--zz) 10px repeat-x,
+    linear-gradient(#000 0 0) 0 0 / 100% calc(100% - 20px) no-repeat;
+  mask:
+    conic-gradient(from 135deg at 50% 0%, #000 90deg, #0000 0) 0 100% / var(--zz) 10px repeat-x,
+    conic-gradient(from -45deg at 50% 100%, #000 90deg, #0000 0) 0 0 / var(--zz) 10px repeat-x,
+    linear-gradient(#000 0 0) 0 0 / 100% calc(100% - 20px) no-repeat;
+}
+/* внутри чека всё — «печатным» моно-шрифтом */
+.receipt,
+.receipt .btn {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+.receipt .btn { font-weight: 700; }
+
+.receipt-title {
+  font-size: .8rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  text-align: center;
+  color: #5B6B7E;
+}
+
+.receipt-sep {
+  border: 0;
+  border-top: 1.5px dashed rgba(11, 22, 38, .25);
+  margin: .95rem 0;
+}
+
+.receipt-lines {
+  min-height: 2.5rem;
+  font-size: .82rem;
+  line-height: 1.45;
+}
+.receipt-row {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  padding: .18rem 0;
+}
+.receipt-row .dots {
+  flex: 1;
+  border-bottom: 1.5px dotted rgba(11, 22, 38, .3);
+  transform: translateY(-3px);
+}
+.receipt-row .val { font-weight: 700; white-space: nowrap; }
+.receipt-empty {
+  color: #5B6B7E;
+  text-align: center;
+  padding: .5rem 0;
+}
+
+.receipt-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .5rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  font-size: .85rem;
+}
+.receipt-total #order-total {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #0672B8; /* ⚙ цвет итога */
+  white-space: nowrap;
+}
+.receipt-range {
+  margin-top: .25rem;
+  font-size: .75rem;
+  color: #5B6B7E;
+  text-align: right;
+}
+
+.receipt-note {
+  margin-top: .6rem;
+  font-size: .72rem;
+  line-height: 1.55;
+  color: #5B6B7E;
+  text-align: center;
+}
+.receipt-copy {
+  margin-top: .55rem;
+  min-height: 1em;
+  font-size: .72rem;
+  color: #0E7BC4;
+  text-align: center;
+}
